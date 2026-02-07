@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tinglevpn.wg</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH; wg-quick up wg0</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>NetworkState</key>
+        <dict>
+            <key>en0</key>
+            <true/>
+        </dict>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/var/log/tinglevpn-wg.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/tinglevpn-wg.log</string>
+</dict>
+</plist>

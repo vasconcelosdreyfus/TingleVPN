@@ -1,0 +1,14 @@
+# Chaves privadas e PSKs
+keys/
+
+# Configs geradas dos clientes
+configs/
+
+# Variaveis de ambiente (contem token DuckDNS)
+.env
+
+# Logs
+*.log
+
+# macOS
+.DS_Store

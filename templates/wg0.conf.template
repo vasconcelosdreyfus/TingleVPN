@@ -1,0 +1,8 @@
+[Interface]
+Address = 10.10.10.1/24
+ListenPort = 51820
+PrivateKey = __SERVER_PRIVATE_KEY__
+PostUp = /usr/local/etc/wireguard/postup.sh
+PostDown = /usr/local/etc/wireguard/postdown.sh
+
+# Peers are appended by generate-client.sh

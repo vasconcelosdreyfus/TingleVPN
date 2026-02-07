@@ -1,0 +1,11 @@
+[Interface]
+Address = __CLIENT_IP__/32
+PrivateKey = __CLIENT_PRIVATE_KEY__
+DNS = 1.1.1.1, 8.8.8.8
+
+[Peer]
+PublicKey = __SERVER_PUBLIC_KEY__
+PresharedKey = __PRESHARED_KEY__
+Endpoint = __ENDPOINT__:51820
+AllowedIPs = 0.0.0.0/0, ::/0
+PersistentKeepalive = 25

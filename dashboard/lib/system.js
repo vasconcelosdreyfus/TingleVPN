@@ -60,7 +60,7 @@ async function getNatRules() {
  */
 async function getPublicIp() {
   try {
-    const out = await exec(CURL, ['-s', '--max-time', '5', 'ifconfig.me']);
+    const out = await exec(CURL, ['-4', '-s', '--max-time', '5', 'ifconfig.me']);
     return out.trim();
   } catch {
     return null;

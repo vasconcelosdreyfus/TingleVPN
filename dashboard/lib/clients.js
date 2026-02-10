@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
-const { exec, WG_CONF, getInterfaceName } = require('./wireguard');
+const { exec, WG_CONF, WG, getInterfaceName } = require('./wireguard');
 
 const PROJECT_DIR = path.join(__dirname, '..', '..');
 const KEYS_DIR = path.join(PROJECT_DIR, 'keys');
@@ -117,9 +117,9 @@ async function generateClient(clientName) {
   fs.mkdirSync(CONFIGS_DIR, { recursive: true });
 
   // Generate keys
-  const privateKey = (await exec('wg', ['genkey'])).trim();
-  const publicKey = (await exec('wg', ['pubkey'], { input: privateKey })).trim();
-  const psk = (await exec('wg', ['genpsk'])).trim();
+  const privateKey = (await exec(WG, ['genkey'])).trim();
+  const publicKey = (await exec(WG, ['pubkey'], { input: privateKey })).trim();
+  const psk = (await exec(WG, ['genpsk'])).trim();
 
   // Save keys
   fs.writeFileSync(path.join(KEYS_DIR, `${clientName}_private.key`), privateKey + '\n', { mode: 0o600 });
@@ -159,7 +159,7 @@ async function generateClient(clientName) {
       const tmpPsk = path.join(KEYS_DIR, `.tmp_psk_${clientName}`);
       fs.writeFileSync(tmpPsk, psk + '\n', { mode: 0o600 });
       try {
-        await exec('wg', ['set', iface, 'peer', publicKey,
+        await exec(WG, ['set', iface, 'peer', publicKey,
           'preshared-key', tmpPsk,
           'allowed-ips', `${clientIp}/32`]);
         hotReloaded = true;
@@ -221,7 +221,7 @@ async function removeClient(clientName) {
     const iface = getInterfaceName();
     if (iface) {
       try {
-        await exec('wg', ['set', iface, 'peer', pubkey, 'remove']);
+        await exec(WG, ['set', iface, 'peer', pubkey, 'remove']);
       } catch {
         // Not critical
       }

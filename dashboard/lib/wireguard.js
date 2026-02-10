@@ -4,6 +4,13 @@ const path = require('path');
 
 const WG_CONF = '/usr/local/etc/wireguard/wg0.conf';
 
+// Full paths for commands - LaunchDaemons have minimal PATH
+const WG = '/opt/homebrew/bin/wg';
+const PFCTL = '/sbin/pfctl';
+const SYSCTL = '/usr/sbin/sysctl';
+const CURL = '/usr/bin/curl';
+const LAUNCHCTL = '/bin/launchctl';
+
 /**
  * Resolves the real utun interface name from /var/run/wireguard/wg0.name
  */
@@ -43,7 +50,7 @@ async function isWgUp() {
   const iface = getInterfaceName();
   if (!iface) return false;
   try {
-    await exec('wg', ['show', iface]);
+    await exec(WG, ['show', iface]);
     return true;
   } catch {
     return false;
@@ -59,7 +66,7 @@ async function parseWgShow() {
 
   let output;
   try {
-    output = await exec('wg', ['show', iface]);
+    output = await exec(WG, ['show', iface]);
   } catch {
     return { iface, peers: [] };
   }
@@ -97,7 +104,32 @@ async function parseWgShow() {
   }
   if (currentPeer) peers.push(currentPeer);
 
+  // Mark online/offline based on handshake age (3 min threshold)
+  for (const peer of peers) {
+    const ageSec = parseHandshakeAge(peer.latestHandshake);
+    peer.online = ageSec !== null && ageSec < 180;
+  }
+
   return { iface, peers };
+}
+
+/**
+ * Parse "X minutes, Y seconds ago" into total seconds. Returns null if unparseable.
+ */
+function parseHandshakeAge(str) {
+  if (!str) return null;
+  let total = 0;
+  const parts = str.match(/(\d+)\s+(second|minute|hour|day)/g);
+  if (!parts) return null;
+  for (const part of parts) {
+    const [, num, unit] = part.match(/(\d+)\s+(second|minute|hour|day)/);
+    const n = parseInt(num, 10);
+    if (unit.startsWith('second')) total += n;
+    else if (unit.startsWith('minute')) total += n * 60;
+    else if (unit.startsWith('hour')) total += n * 3600;
+    else if (unit.startsWith('day')) total += n * 86400;
+  }
+  return total;
 }
 
 /**
@@ -119,11 +151,16 @@ async function disconnectPeer(publicKey) {
   if (!iface) throw new Error('WireGuard is not running');
 
   // Read config to get the peer's allowed IPs and PSK for re-add on restart
-  await exec('wg', ['set', iface, 'peer', publicKey, 'remove']);
+  await exec(WG, ['set', iface, 'peer', publicKey, 'remove']);
 }
 
 module.exports = {
   WG_CONF,
+  WG,
+  PFCTL,
+  SYSCTL,
+  CURL,
+  LAUNCHCTL,
   getInterfaceName,
   exec,
   isWgUp,

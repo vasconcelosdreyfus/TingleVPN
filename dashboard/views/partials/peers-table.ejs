@@ -1,7 +1,9 @@
 <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 fade-in">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-white">Connected Peers</h2>
-    <span id="peers-count" class="text-sm text-gray-500"><%= peers.length %> peer(s)</span>
+    <span id="peers-count" class="text-sm text-gray-500">
+      <%= peers.filter(function(p) { return p.online; }).length %> online / <%= peers.length %> total
+    </span>
   </div>
 
   <div class="overflow-x-auto">
@@ -9,6 +11,7 @@
       <thead>
         <tr class="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
           <th class="pb-3 pr-4">Client</th>
+          <th class="pb-3 pr-4">Status</th>
           <th class="pb-3 pr-4">Endpoint</th>
           <th class="pb-3 pr-4">Allowed IPs</th>
           <th class="pb-3 pr-4">Handshake</th>
@@ -19,7 +22,7 @@
       <tbody id="peers-tbody">
         <% if (peers.length === 0) { %>
           <tr>
-            <td colspan="6" class="py-8 text-center text-gray-500">No peers connected</td>
+            <td colspan="7" class="py-8 text-center text-gray-500">No peers configured</td>
           </tr>
         <% } else { %>
           <% peers.forEach(function(peer) { %>
@@ -27,6 +30,14 @@
               <td class="py-3 pr-4">
                 <div class="font-medium text-white"><%= peer.name %></div>
                 <div class="text-xs text-gray-500 font-mono truncate max-w-[180px]"><%= peer.publicKey %></div>
+              </td>
+              <td class="py-3 pr-4">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full <%= peer.online ? 'bg-green-400 pulse-dot' : 'bg-gray-600' %>"></span>
+                  <span class="text-xs font-medium <%= peer.online ? 'text-green-400' : 'text-gray-500' %>">
+                    <%= peer.online ? 'Online' : 'Offline' %>
+                  </span>
+                </div>
               </td>
               <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= peer.endpoint || '-' %></td>
               <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= peer.allowedIps || '-' %></td>

@@ -1,4 +1,4 @@
-const { exec, isWgUp, getInterfaceName } = require('./wireguard');
+const { exec, isWgUp, getInterfaceName, WG, PFCTL, SYSCTL, CURL, LAUNCHCTL } = require('./wireguard');
 
 /**
  * Get tunnel status: interface name, listening port, public key
@@ -13,7 +13,7 @@ async function getTunnelStatus() {
 
   let output;
   try {
-    output = await exec('wg', ['show', iface]);
+    output = await exec(WG, ['show', iface]);
   } catch {
     return { up: false, iface };
   }
@@ -36,7 +36,7 @@ async function getTunnelStatus() {
  */
 async function getIpForwarding() {
   try {
-    const out = await exec('sysctl', ['-n', 'net.inet.ip.forwarding']);
+    const out = await exec(SYSCTL, ['-n', 'net.inet.ip.forwarding']);
     return out.trim() === '1';
   } catch {
     return false;
@@ -48,7 +48,7 @@ async function getIpForwarding() {
  */
 async function getNatRules() {
   try {
-    const out = await exec('pfctl', ['-a', 'com.apple/wireguard', '-s', 'nat']);
+    const out = await exec(PFCTL, ['-a', 'com.apple/wireguard', '-s', 'nat']);
     return out.trim() || null;
   } catch {
     return null;
@@ -60,7 +60,7 @@ async function getNatRules() {
  */
 async function getPublicIp() {
   try {
-    const out = await exec('curl', ['-s', '--max-time', '5', 'ifconfig.me']);
+    const out = await exec(CURL, ['-s', '--max-time', '5', 'ifconfig.me']);
     return out.trim();
   } catch {
     return null;
@@ -72,7 +72,7 @@ async function getPublicIp() {
  */
 async function getDaemonStatus(label) {
   try {
-    await exec('launchctl', ['list', label]);
+    await exec(LAUNCHCTL, ['list', label]);
     return true;
   } catch {
     return false;

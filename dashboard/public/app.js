@@ -113,10 +113,11 @@ function updatePeersTable(peers) {
   var count = document.getElementById('peers-count');
   if (!tbody) return;
 
-  count.textContent = peers.length + ' peer(s)';
+  var onlineCount = peers.filter(function(p) { return p.online; }).length;
+  count.textContent = onlineCount + ' online / ' + peers.length + ' total';
 
   if (peers.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-gray-500">No peers connected</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-gray-500">No peers configured</td></tr>';
     return;
   }
 
@@ -127,9 +128,17 @@ function updatePeersTable(peers) {
         '<span class="text-blue-400">&uarr; ' + esc(p.tx) + '</span>'
       : '<span class="text-gray-500">-</span>';
 
+    var statusDot = p.online ? 'bg-green-400 pulse-dot' : 'bg-gray-600';
+    var statusText = p.online ? 'text-green-400' : 'text-gray-500';
+    var statusLabel = p.online ? 'Online' : 'Offline';
+
     return '<tr class="border-b border-gray-800/50 hover:bg-gray-800/30" data-peer-key="' + esc(p.publicKey) + '">' +
       '<td class="py-3 pr-4"><div class="font-medium text-white">' + esc(p.name) + '</div>' +
         '<div class="text-xs text-gray-500 font-mono truncate max-w-[180px]">' + esc(p.publicKey) + '</div></td>' +
+      '<td class="py-3 pr-4"><div class="flex items-center gap-2">' +
+        '<span class="w-2 h-2 rounded-full ' + statusDot + '"></span>' +
+        '<span class="text-xs font-medium ' + statusText + '">' + statusLabel + '</span>' +
+      '</div></td>' +
       '<td class="py-3 pr-4 font-mono text-gray-300 text-xs">' + esc(p.endpoint || '-') + '</td>' +
       '<td class="py-3 pr-4 font-mono text-gray-300 text-xs">' + esc(p.allowedIps || '-') + '</td>' +
       '<td class="py-3 pr-4 text-gray-300 text-xs">' + esc(p.latestHandshake || 'Never') + '</td>' +

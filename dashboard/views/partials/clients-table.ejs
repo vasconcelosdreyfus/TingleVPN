@@ -32,6 +32,10 @@
               <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= client.allowedIps || '-' %></td>
               <td class="py-3 pr-4 font-mono text-gray-500 text-xs truncate max-w-[200px]"><%= client.publicKey || '-' %></td>
               <td class="py-3 text-right space-x-3">
+                <button onclick="renameClientPrompt('<%= client.name %>')"
+                  class="text-xs text-yellow-400 hover:text-yellow-300 transition-colors">
+                  Rename
+                </button>
                 <button onclick="showQR('<%= client.name %>')"
                   class="text-xs text-vpn-400 hover:text-vpn-300 transition-colors">
                   QR Code

@@ -310,10 +310,52 @@ function removePeerBlock(config, clientName) {
   return result.join('\n');
 }
 
+/**
+ * Rename a client (keeps keys, IP, and config intact)
+ */
+function renameClient(oldName, newName) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(oldName) || !/^[a-zA-Z0-9_-]+$/.test(newName)) {
+    throw new Error('Client names must contain only letters, numbers, hyphens and underscores');
+  }
+  if (oldName === newName) throw new Error('Names are the same');
+
+  const config = readConfig();
+  if (!config) throw new Error('Server config not found');
+  if (!config.includes(`# Cliente: ${oldName}\n`)) {
+    throw new Error(`Client '${oldName}' not found`);
+  }
+  if (config.includes(`# Cliente: ${newName}\n`)) {
+    throw new Error(`Client '${newName}' already exists`);
+  }
+  if (fs.existsSync(path.join(CONFIGS_DIR, `${newName}.conf`))) {
+    throw new Error(`Config for '${newName}' already exists`);
+  }
+
+  // Rename comment in server config
+  const newConfig = config.replace(`# Cliente: ${oldName}\n`, `# Cliente: ${newName}\n`);
+  fs.writeFileSync(WG_CONF, newConfig, { mode: 0o600 });
+
+  // Rename key files
+  const keyTypes = ['private', 'public', 'psk'];
+  for (const t of keyTypes) {
+    const oldPath = path.join(KEYS_DIR, `${oldName}_${t}.key`);
+    const newPath = path.join(KEYS_DIR, `${newName}_${t}.key`);
+    try { fs.renameSync(oldPath, newPath); } catch { /* may not exist */ }
+  }
+
+  // Rename client config
+  const oldConf = path.join(CONFIGS_DIR, `${oldName}.conf`);
+  const newConf = path.join(CONFIGS_DIR, `${newName}.conf`);
+  try { fs.renameSync(oldConf, newConf); } catch { /* may not exist */ }
+
+  return { oldName, newName };
+}
+
 module.exports = {
   getClientMap,
   listClients,
   generateClient,
   removeClient,
+  renameClient,
   getClientQR
 };

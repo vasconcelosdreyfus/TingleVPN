@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { requireAuth } = require('../lib/auth');
-const { listClients, generateClient, removeClient, getClientQR } = require('../lib/clients');
+const { listClients, generateClient, removeClient, renameClient, getClientQR } = require('../lib/clients');
 
 router.get('/clients', requireAuth, (req, res) => {
   try {
@@ -33,6 +33,22 @@ router.delete('/clients/:name', requireAuth, async (req, res) => {
     }
 
     const result = await removeClient(name);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.patch('/clients/:name', requireAuth, (req, res) => {
+  try {
+    const { name } = req.params;
+    const { newName } = req.body;
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(name) || !newName || !/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      return res.status(400).json({ error: 'Invalid client name' });
+    }
+
+    const result = renameClient(name, newName);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });

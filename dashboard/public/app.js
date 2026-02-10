@@ -169,6 +169,7 @@ function updateClientsTable(clients) {
       '<td class="py-3 pr-4 font-mono text-gray-300 text-xs">' + esc(c.allowedIps || '-') + '</td>' +
       '<td class="py-3 pr-4 font-mono text-gray-500 text-xs truncate max-w-[200px]">' + esc(c.publicKey || '-') + '</td>' +
       '<td class="py-3 text-right space-x-3">' +
+        '<button onclick="renameClientPrompt(\'' + esc(c.name) + '\')" class="text-xs text-yellow-400 hover:text-yellow-300 transition-colors">Rename</button>' +
         '<button onclick="showQR(\'' + esc(c.name) + '\')" class="text-xs text-vpn-400 hover:text-vpn-300 transition-colors">QR Code</button>' +
         '<button onclick="removeClient(\'' + esc(c.name) + '\')" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>' +
       '</td></tr>';
@@ -184,6 +185,23 @@ function disconnectPeer(encodedKey, name) {
     showToast('Peer "' + name + '" disconnected', 'success');
     pollPeers();
   }).catch(function() { showToast('Failed to disconnect peer', 'error'); });
+}
+
+function renameClientPrompt(name) {
+  var newName = prompt('New name for "' + name + '":', name);
+  if (!newName || newName === name) return;
+  newName = newName.trim();
+  if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+    showToast('Name cannot contain spaces. Use hyphens or underscores (e.g. iphone-dreyfus)', 'error');
+    return;
+  }
+
+  api('PATCH', '/api/clients/' + encodeURIComponent(name), { newName: newName }).then(function(data) {
+    if (data && data.error) { showToast(data.error, 'error'); return; }
+    showToast('Client renamed to "' + newName + '"', 'success');
+    pollClients();
+    pollPeers();
+  }).catch(function() { showToast('Failed to rename client', 'error'); });
 }
 
 function removeClient(name) {

@@ -129,7 +129,60 @@ sudo ./manage.sh remove <nome>  # Remove um cliente
 sudo ./manage.sh logs        # Mostra logs recentes
 sudo ./manage.sh ip          # Mostra IP publico atual
 sudo ./manage.sh duckdns     # Forca atualizacao do DuckDNS
+sudo ./manage.sh dashboard <cmd>  # Gerencia o dashboard web (start|stop|restart|status)
 ```
+
+## Dashboard Web
+
+Painel web para monitorar e gerenciar a VPN pelo navegador. Mostra status do servidor, peers conectados (online/offline em tempo real), e permite adicionar/remover clientes com QR code.
+
+### Setup do Dashboard
+
+```bash
+# Instalar dependencias
+cd dashboard && npm install && cd ..
+
+# Configurar credenciais no .env
+# Gerar hash da senha:
+node -e "require('./dashboard/node_modules/bcrypt').hash('sua-senha',10).then(console.log)"
+
+# Adicionar ao .env:
+DASHBOARD_USER=admin
+DASHBOARD_PASS_HASH=<hash-gerado>
+DASHBOARD_SECRET=<string-aleatoria>
+DASHBOARD_PORT=3000
+DASHBOARD_BIND=127.0.0.1
+```
+
+### Iniciar o Dashboard
+
+```bash
+# Como LaunchDaemon (recomendado - auto-start no boot)
+sudo ./manage.sh dashboard start
+
+# Ou manualmente
+cd dashboard && npm start
+```
+
+### Acessar
+
+Abra `http://127.0.0.1:3000` no navegador e faca login com as credenciais configuradas.
+
+### Gerenciar o Dashboard
+
+```bash
+sudo ./manage.sh dashboard start    # Iniciar
+sudo ./manage.sh dashboard stop     # Parar
+sudo ./manage.sh dashboard restart  # Reiniciar
+sudo ./manage.sh dashboard status   # Verificar status
+```
+
+### Funcionalidades
+
+- **Server Status**: Tunnel, IP forwarding, NAT, IP publico, daemons
+- **Connected Peers**: Peers com status online/offline, endpoint, handshake, transferencia, disconnect
+- **Configured Clients**: Lista de clientes, QR code, adicionar/remover clientes
+- **Auto-refresh**: Polling a cada 10 segundos
 
 ## Configuracao do Roteador
 
@@ -151,7 +204,7 @@ Dica: configure um IP fixo (DHCP reservation) para o Mac no roteador.
 ```
 tinglevpn/
 ├── .gitignore                        # Ignora keys/, configs/, .env
-├── .env                              # DUCKDNS_DOMAIN e DUCKDNS_TOKEN
+├── .env                              # Credenciais DuckDNS + config dashboard
 ├── README.md                         # Este arquivo
 ├── setup-server.sh                   # Setup inicial do servidor
 ├── generate-client.sh                # Gera config de novo cliente + QR code
@@ -164,7 +217,14 @@ tinglevpn/
 │   ├── wg0.conf.template             # Template do servidor
 │   ├── client.conf.template          # Template do cliente
 │   ├── com.tinglevpn.wg.plist        # LaunchDaemon WireGuard
-│   └── com.tinglevpn.duckdns.plist   # LaunchDaemon DuckDNS
+│   ├── com.tinglevpn.duckdns.plist   # LaunchDaemon DuckDNS
+│   └── com.tinglevpn.dashboard.plist # LaunchDaemon Dashboard
+├── dashboard/                        # Painel web (Node.js/Express)
+│   ├── server.js                     # Entry point
+│   ├── lib/                          # Logica de negocio
+│   ├── routes/                       # Rotas Express
+│   ├── views/                        # Templates EJS
+│   └── public/                       # JS client-side
 ├── configs/                          # Configs geradas dos clientes (gitignored)
 └── keys/                             # Chaves privadas (gitignored)
 ```

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-950">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +21,65 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     .pulse-dot { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Light mode overrides */
+    html.light body { background: #f8fafc !important; color: #1e293b !important; }
+    html.light .bg-gray-950 { background: #f8fafc !important; }
+    html.light .bg-gray-900 { background: #ffffff !important; }
+    html.light .bg-gray-800 { background: #f1f5f9 !important; }
+    html.light .bg-gray-800\/30 { background: rgba(241,245,249,0.3) !important; }
+    html.light .text-white { color: #0f172a !important; }
+    html.light .text-gray-100 { color: #1e293b !important; }
+    html.light .text-gray-300 { color: #475569 !important; }
+    html.light .text-gray-400 { color: #64748b !important; }
+    html.light .text-gray-500 { color: #94a3b8 !important; }
+    html.light .text-gray-600 { color: #94a3b8 !important; }
+    html.light .border-gray-800 { border-color: #e2e8f0 !important; }
+    html.light .border-gray-800\/50 { border-color: rgba(226,232,240,0.5) !important; }
+    html.light .border-gray-700 { border-color: #cbd5e1 !important; }
+    html.light .bg-red-900\/50 { background: rgba(254,226,226,0.5) !important; }
+    html.light .border-red-700 { border-color: #fca5a5 !important; }
+    html.light .text-red-300 { color: #dc2626 !important; }
+    html.light .bg-black\/60 { background: rgba(0,0,0,0.3) !important; }
+    html.light .hover\:bg-gray-800\/30:hover { background: rgba(241,245,249,0.5) !important; }
+    html.light .font-mono.text-gray-500 { color: #64748b !important; }
+    html.light input { background: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+    html.light .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15) !important; }
   </style>
+  <script>
+    // Apply theme before render to prevent flash
+    (function() {
+      var theme = localStorage.getItem('tingle-theme');
+      if (theme === 'light') document.documentElement.classList.add('light');
+    })();
+
+    function isLight() {
+      return document.documentElement.classList.contains('light');
+    }
+
+    function updateThemeIcon() {
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = isLight() ? '\u263E' : '\u2600';
+    }
+
+    function updateThemeLogos() {
+      var logos = document.querySelectorAll('.theme-logo');
+      logos.forEach(function(img) {
+        img.src = isLight() ? '/public/logo-light.png' : '/public/logo.png';
+      });
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('light');
+      localStorage.setItem('tingle-theme', isLight() ? 'light' : 'dark');
+      updateThemeIcon();
+      updateThemeLogos();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateThemeIcon();
+      updateThemeLogos();
+    });
+  </script>
 </head>
 <body class="h-full bg-gray-950 text-gray-100">

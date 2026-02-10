@@ -1,8 +1,15 @@
 <%- include('layout') %>
 
+<div class="absolute top-4 right-4">
+  <button onclick="toggleTheme()" id="theme-toggle" title="Toggle theme"
+    class="text-gray-400 hover:text-white transition-colors text-lg leading-none">
+  </button>
+</div>
+
 <div class="min-h-full flex items-center justify-center py-12 px-4">
   <div class="w-full max-w-sm space-y-8">
     <div class="text-center">
+      <img src="/public/logo.png" alt="Tingle Digital" class="theme-logo h-16 mx-auto mb-4 opacity-80">
       <h1 class="text-3xl font-bold text-white">TingleVPN</h1>
       <p class="mt-2 text-gray-400">Sign in to the dashboard</p>
     </div>
@@ -32,6 +39,12 @@
         Sign In
       </button>
     </form>
+
+    <div class="text-center pt-4">
+      <a href="https://tingledigital.com" target="_blank" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+        tingledigital.com
+      </a>
+    </div>
   </div>
 </div>
 

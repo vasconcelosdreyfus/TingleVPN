@@ -5,11 +5,16 @@
         <span class="text-vpn-400 font-bold text-lg">TingleVPN</span>
         <span class="text-gray-500 text-sm">Dashboard</span>
       </div>
-      <form method="POST" action="/logout" class="inline">
-        <button type="submit" class="text-gray-400 hover:text-white text-sm transition-colors">
-          Sign Out
+      <div class="flex items-center gap-4">
+        <button onclick="toggleTheme()" id="theme-toggle" title="Toggle theme"
+          class="text-gray-400 hover:text-white transition-colors text-lg leading-none">
         </button>
-      </form>
+        <form method="POST" action="/logout" class="inline">
+          <button type="submit" class="text-gray-400 hover:text-white text-sm transition-colors">
+            Sign Out
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </nav>

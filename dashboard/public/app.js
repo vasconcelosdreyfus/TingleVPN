@@ -91,7 +91,7 @@ function updateStatusGrid(s) {
     '</div>' +
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">Public IP</p>' +
-      '<span class="text-sm font-mono text-gray-300">' + esc(s.publicIp || 'N/A') + '</span>' +
+      '<span class="text-sm font-mono text-gray-300 break-all">' + esc(s.publicIp || 'N/A') + '</span>' +
     '</div>' +
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">WG Daemon</p>' +

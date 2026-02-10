@@ -6,15 +6,77 @@ VPN pessoal com WireGuard no macOS. Permite rotear todo o trafego de internet (n
 
 ## Arquitetura
 
+```mermaid
+graph TB
+    subgraph clients["Clientes (qualquer lugar do mundo)"]
+        iPhone["iPhone<br/>WireGuard App"]
+        Mac["MacBook<br/>WireGuard CLI/App"]
+        Win["Windows<br/>WireGuard App"]
+        Android["Android<br/>WireGuard App"]
+    end
+
+    subgraph server["Desktop macOS no Brasil"]
+        WG["WireGuard Server<br/>10.10.10.1 :51820/UDP"]
+        NAT["NAT<br/>pfctl anchor"]
+        Dashboard["Dashboard Web<br/>Node.js :3000"]
+        DuckDNS["DuckDNS Updater<br/>DNS Dinamico"]
+    end
+
+    Internet["Internet Brasileira<br/>(IP brasileiro)"]
+
+    iPhone -- "tunnel criptografado" --> WG
+    Mac -- "tunnel criptografado" --> WG
+    Win -- "tunnel criptografado" --> WG
+    Android -- "tunnel criptografado" --> WG
+
+    WG --> NAT
+    NAT --> Internet
+
+    WG -. "gerenciamento" .-> Dashboard
+    DuckDNS -. "atualiza IP" .-> DNS["dominio.duckdns.org"]
+
+    style server fill:#1a1a2e,stroke:#8b5cf6,color:#fff
+    style clients fill:#16213e,stroke:#0ea5e9,color:#fff
+    style WG fill:#7c3aed,stroke:#a78bfa,color:#fff
+    style Dashboard fill:#7c3aed,stroke:#a78bfa,color:#fff
+    style NAT fill:#059669,stroke:#34d399,color:#fff
+    style Internet fill:#0369a1,stroke:#38bdf8,color:#fff
 ```
-[Viajando]                              [Desktop macOS no Brasil]
- Notebook/Celular  ── WireGuard ──►    Servidor VPN (10.10.10.1)
-                                            │ NAT (pfctl)
-                                       Internet brasileira
+
+```mermaid
+graph LR
+    subgraph launchdaemons["LaunchDaemons (auto-start no boot)"]
+        D1["com.tinglevpn.wg<br/>WireGuard tunnel"]
+        D2["com.tinglevpn.duckdns<br/>DNS update a cada 5min"]
+        D3["com.tinglevpn.dashboard<br/>Web dashboard"]
+    end
+
+    subgraph scripts["Scripts de Gerenciamento"]
+        manage["manage.sh<br/>CLI principal"]
+        generate["generate-client.sh<br/>Gerar clientes + QR"]
+        setup["setup-server.sh<br/>Setup inicial"]
+    end
+
+    subgraph dashboard["Dashboard Web"]
+        Auth["Login<br/>bcrypt + session"]
+        Status["Server Status<br/>tunnel, NAT, IP"]
+        Peers["Connected Peers<br/>online/offline"]
+        Clients["Client Management<br/>add, remove, rename, QR"]
+    end
+
+    manage --> D1
+    manage --> D2
+    manage --> D3
+    D3 --> Auth --> Status & Peers & Clients
+
+    style launchdaemons fill:#1a1a2e,stroke:#8b5cf6,color:#fff
+    style scripts fill:#16213e,stroke:#0ea5e9,color:#fff
+    style dashboard fill:#1e1b4b,stroke:#a78bfa,color:#fff
 ```
 
 - **VPN**: WireGuard (open-source, gratuito)
 - **DNS Dinamico**: DuckDNS (gratuito)
+- **Dashboard**: Node.js + Express + EJS + Tailwind CSS
 - **Subnet**: 10.10.10.0/24, porta 51820/UDP
 - **NAT**: pfctl com anchor `com.apple/wireguard`
 

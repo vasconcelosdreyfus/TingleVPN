@@ -150,9 +150,15 @@ echo "Peer adicionado ao servidor"
 
 # --- Hot-reload se o WireGuard estiver rodando ---
 
-if wg show wg0 &>/dev/null; then
+# Resolve o nome real da interface (utun*) a partir de wg0.name
+WG_IFACE=""
+if [[ -f /var/run/wireguard/wg0.name ]]; then
+    WG_IFACE=$(cat /var/run/wireguard/wg0.name)
+fi
+
+if [[ -n "$WG_IFACE" ]] && wg show "$WG_IFACE" &>/dev/null; then
     echo "Aplicando configuracao (hot-reload)..."
-    wg set wg0 peer "$CLIENT_PUBLIC_KEY" \
+    wg set "$WG_IFACE" peer "$CLIENT_PUBLIC_KEY" \
         preshared-key <(echo "$PRESHARED_KEY") \
         allowed-ips "${CLIENT_IP}/32"
     echo "Peer adicionado ao tunel ativo"

@@ -1,0 +1,55 @@
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 fade-in">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-white">Connected Peers</h2>
+    <span id="peers-count" class="text-sm text-gray-500"><%= peers.length %> peer(s)</span>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm" id="peers-table">
+      <thead>
+        <tr class="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
+          <th class="pb-3 pr-4">Client</th>
+          <th class="pb-3 pr-4">Endpoint</th>
+          <th class="pb-3 pr-4">Allowed IPs</th>
+          <th class="pb-3 pr-4">Handshake</th>
+          <th class="pb-3 pr-4">Transfer</th>
+          <th class="pb-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="peers-tbody">
+        <% if (peers.length === 0) { %>
+          <tr>
+            <td colspan="6" class="py-8 text-center text-gray-500">No peers connected</td>
+          </tr>
+        <% } else { %>
+          <% peers.forEach(function(peer) { %>
+            <tr class="border-b border-gray-800/50 hover:bg-gray-800/30" data-peer-key="<%= peer.publicKey %>">
+              <td class="py-3 pr-4">
+                <div class="font-medium text-white"><%= peer.name %></div>
+                <div class="text-xs text-gray-500 font-mono truncate max-w-[180px]"><%= peer.publicKey %></div>
+              </td>
+              <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= peer.endpoint || '-' %></td>
+              <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= peer.allowedIps || '-' %></td>
+              <td class="py-3 pr-4 text-gray-300 text-xs"><%= peer.latestHandshake || 'Never' %></td>
+              <td class="py-3 pr-4 text-xs">
+                <% if (peer.rx) { %>
+                  <span class="text-green-400">&darr; <%= peer.rx %></span>
+                  <span class="text-gray-600 mx-1">/</span>
+                  <span class="text-blue-400">&uarr; <%= peer.tx %></span>
+                <% } else { %>
+                  <span class="text-gray-500">-</span>
+                <% } %>
+              </td>
+              <td class="py-3 text-right">
+                <button onclick="disconnectPeer('<%= encodeURIComponent(peer.publicKey) %>', '<%= peer.name %>')"
+                  class="text-xs text-red-400 hover:text-red-300 transition-colors">
+                  Disconnect
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>

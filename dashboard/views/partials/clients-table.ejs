@@ -1,0 +1,50 @@
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 fade-in">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-white">Configured Clients</h2>
+    <div class="flex items-center gap-3">
+      <span id="clients-count" class="text-sm text-gray-500"><%= clients.length %> client(s)</span>
+      <button onclick="openAddClientModal()"
+        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-vpn-600 hover:bg-vpn-700 text-white transition-colors">
+        + Add Client
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm" id="clients-table">
+      <thead>
+        <tr class="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
+          <th class="pb-3 pr-4">Name</th>
+          <th class="pb-3 pr-4">IP Address</th>
+          <th class="pb-3 pr-4">Public Key</th>
+          <th class="pb-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="clients-tbody">
+        <% if (clients.length === 0) { %>
+          <tr>
+            <td colspan="4" class="py-8 text-center text-gray-500">No clients configured</td>
+          </tr>
+        <% } else { %>
+          <% clients.forEach(function(client) { %>
+            <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
+              <td class="py-3 pr-4 font-medium text-white"><%= client.name %></td>
+              <td class="py-3 pr-4 font-mono text-gray-300 text-xs"><%= client.allowedIps || '-' %></td>
+              <td class="py-3 pr-4 font-mono text-gray-500 text-xs truncate max-w-[200px]"><%= client.publicKey || '-' %></td>
+              <td class="py-3 text-right space-x-3">
+                <button onclick="showQR('<%= client.name %>')"
+                  class="text-xs text-vpn-400 hover:text-vpn-300 transition-colors">
+                  QR Code
+                </button>
+                <button onclick="removeClient('<%= client.name %>')"
+                  class="text-xs text-red-400 hover:text-red-300 transition-colors">
+                  Remove
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>

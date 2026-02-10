@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tinglevpn.dashboard</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/servidor/apps/tinglevpn/dashboard/server.js</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>/Users/servidor/apps/tinglevpn/dashboard</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/tinglevpn-dashboard.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/tinglevpn-dashboard.log</string>
+</dict>
+</plist>

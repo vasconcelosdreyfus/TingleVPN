@@ -42,6 +42,7 @@ Comandos:
   logs        Mostra logs recentes do WireGuard
   ip          Mostra o IP publico atual
   duckdns     Forca atualizacao do DuckDNS agora
+  dashboard   Inicia/para/reinicia o dashboard web (start|stop|restart|status)
 EOF
     exit 1
 }
@@ -129,6 +130,11 @@ cmd_status() {
         echo "DuckDNS daemon: carregado"
     else
         echo "DuckDNS daemon: nao carregado"
+    fi
+    if launchctl list com.tinglevpn.dashboard &>/dev/null; then
+        echo "Dashboard daemon: carregado"
+    else
+        echo "Dashboard daemon: nao carregado"
     fi
 }
 
@@ -248,6 +254,42 @@ cmd_duckdns() {
     "$WG_DIR/duckdns-update.sh"
 }
 
+cmd_dashboard() {
+    check_root
+    local subcmd="${1:-status}"
+    local plist="/Library/LaunchDaemons/com.tinglevpn.dashboard.plist"
+    local src_plist="$SCRIPT_DIR/templates/com.tinglevpn.dashboard.plist"
+
+    case "$subcmd" in
+        start)
+            if [[ ! -f "$plist" ]]; then
+                cp "$src_plist" "$plist"
+            fi
+            launchctl load -w "$plist" 2>/dev/null || true
+            info "Dashboard iniciado"
+            ;;
+        stop)
+            launchctl unload -w "$plist" 2>/dev/null || true
+            info "Dashboard parado"
+            ;;
+        restart)
+            launchctl unload -w "$plist" 2>/dev/null || true
+            launchctl load -w "$plist" 2>/dev/null || true
+            info "Dashboard reiniciado"
+            ;;
+        status)
+            if launchctl list com.tinglevpn.dashboard &>/dev/null; then
+                echo "Dashboard daemon: carregado"
+            else
+                echo "Dashboard daemon: nao carregado"
+            fi
+            ;;
+        *)
+            erro "Uso: $0 dashboard (start|stop|restart|status)"
+            ;;
+    esac
+}
+
 # --- Main ---
 
 [[ $# -lt 1 ]] && usage
@@ -265,6 +307,7 @@ case "$COMMAND" in
     remove)  cmd_remove "$@" ;;
     logs)    cmd_logs ;;
     ip)      cmd_ip ;;
-    duckdns) cmd_duckdns ;;
-    *)       usage ;;
+    duckdns)    cmd_duckdns ;;
+    dashboard)  cmd_dashboard "$@" ;;
+    *)          usage ;;
 esac

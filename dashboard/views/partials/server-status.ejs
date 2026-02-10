@@ -1,0 +1,57 @@
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 fade-in">
+  <h2 class="text-lg font-semibold text-white mb-4">Server Status</h2>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="status-grid">
+    <!-- Tunnel -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">Tunnel</p>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full <%= status.tunnel.up ? 'bg-green-400 pulse-dot' : 'bg-red-400' %>"></span>
+        <span class="text-sm font-medium <%= status.tunnel.up ? 'text-green-400' : 'text-red-400' %>">
+          <%= status.tunnel.up ? 'Active' : 'Inactive' %>
+        </span>
+      </div>
+      <% if (status.tunnel.iface) { %>
+        <p class="text-xs text-gray-500"><%= status.tunnel.iface %></p>
+      <% } %>
+    </div>
+
+    <!-- IP Forwarding -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">IP Forwarding</p>
+      <span class="text-sm font-medium <%= status.ipForwarding ? 'text-green-400' : 'text-red-400' %>">
+        <%= status.ipForwarding ? 'Enabled' : 'Disabled' %>
+      </span>
+    </div>
+
+    <!-- NAT -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">NAT</p>
+      <span class="text-sm font-medium <%= status.nat ? 'text-green-400' : 'text-yellow-400' %>">
+        <%= status.nat ? 'Active' : 'No rules' %>
+      </span>
+    </div>
+
+    <!-- Public IP -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">Public IP</p>
+      <span class="text-sm font-mono text-gray-300"><%= status.publicIp || 'N/A' %></span>
+    </div>
+
+    <!-- WG Daemon -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">WG Daemon</p>
+      <span class="text-sm font-medium <%= status.daemons.wireguard ? 'text-green-400' : 'text-gray-500' %>">
+        <%= status.daemons.wireguard ? 'Loaded' : 'Not loaded' %>
+      </span>
+    </div>
+
+    <!-- DuckDNS Daemon -->
+    <div class="space-y-1">
+      <p class="text-xs text-gray-500 uppercase tracking-wider">DuckDNS</p>
+      <span class="text-sm font-medium <%= status.daemons.duckdns ? 'text-green-400' : 'text-gray-500' %>">
+        <%= status.daemons.duckdns ? 'Loaded' : 'Not loaded' %>
+      </span>
+    </div>
+  </div>
+</div>

@@ -10,5 +10,8 @@ configs/
 # Logs
 *.log
 
+# Dashboard dependencies
+dashboard/node_modules/
+
 # macOS
 .DS_Store

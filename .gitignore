@@ -10,8 +10,9 @@ configs/
 # Logs
 *.log
 
-# Dashboard dependencies
+# Dashboard
 dashboard/node_modules/
+restart-dashboard.sh
 
 # macOS
 .DS_Store

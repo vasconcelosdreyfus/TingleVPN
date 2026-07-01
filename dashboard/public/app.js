@@ -58,6 +58,35 @@ function pollAll() {
 
 setInterval(pollAll, POLL_INTERVAL);
 
+// --- Tunnel restart ---
+function restartTunnel() {
+  var btn = document.getElementById('restart-tunnel-btn');
+  if (!btn) return;
+  if (!confirm('Reiniciar o tunnel WireGuard? Todos os peers serao desconectados temporariamente.')) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Reiniciando...';
+  btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-yellow-900/50 border border-yellow-700/50 text-yellow-300 cursor-wait';
+
+  api('POST', '/api/tunnel/restart').then(function(data) {
+    btn.disabled = false;
+    if (data && data.error) {
+      showToast('Falha ao reiniciar: ' + data.error, 'error');
+      btn.textContent = 'Reiniciar Tunnel';
+      btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-red-900/50 border border-red-700/50 text-red-300 hover:bg-red-800/50 hover:border-red-600 transition-all';
+      return;
+    }
+    showToast('Tunnel reiniciado com sucesso!', 'success');
+    // Refresh status after short delay to let the tunnel stabilize
+    setTimeout(pollAll, 2000);
+  }).catch(function() {
+    btn.disabled = false;
+    btn.textContent = 'Reiniciar Tunnel';
+    btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-red-900/50 border border-red-700/50 text-red-300 hover:bg-red-800/50 hover:border-red-600 transition-all';
+    showToast('Erro ao reiniciar tunnel', 'error');
+  });
+}
+
 // --- Status update ---
 function updateStatusGrid(s) {
   var grid = document.getElementById('status-grid');
@@ -66,13 +95,25 @@ function updateStatusGrid(s) {
   var tunnelUp = s.tunnel && s.tunnel.up;
   var ifaceName = s.tunnel && s.tunnel.iface ? s.tunnel.iface : '';
 
+  // Show/hide restart button
+  var restartBtn = document.getElementById('restart-tunnel-btn');
+  if (restartBtn && !restartBtn.disabled) {
+    if (tunnelUp) {
+      restartBtn.classList.add('hidden');
+    } else {
+      restartBtn.classList.remove('hidden');
+      restartBtn.textContent = 'Reiniciar Tunnel';
+      restartBtn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-red-900/50 border border-red-700/50 text-red-300 hover:bg-red-800/50 hover:border-red-600 transition-all';
+    }
+  }
+
   grid.innerHTML =
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">Tunnel</p>' +
       '<div class="flex items-center gap-2">' +
         '<span class="w-2 h-2 rounded-full ' + (tunnelUp ? 'bg-green-400 pulse-dot' : 'bg-red-400') + '"></span>' +
         '<span class="text-sm font-medium ' + (tunnelUp ? 'text-green-400' : 'text-red-400') + '">' +
-          (tunnelUp ? 'Active' : 'Inactive') +
+          (tunnelUp ? 'Ativo' : 'Inativo') +
         '</span>' +
       '</div>' +
       (ifaceName ? '<p class="text-xs text-gray-500">' + esc(ifaceName) + '</p>' : '') +
@@ -80,13 +121,13 @@ function updateStatusGrid(s) {
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">IP Forwarding</p>' +
       '<span class="text-sm font-medium ' + (s.ipForwarding ? 'text-green-400' : 'text-red-400') + '">' +
-        (s.ipForwarding ? 'Enabled' : 'Disabled') +
+        (s.ipForwarding ? 'Ativado' : 'Desativado') +
       '</span>' +
     '</div>' +
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">NAT</p>' +
       '<span class="text-sm font-medium ' + (s.nat ? 'text-green-400' : 'text-yellow-400') + '">' +
-        (s.nat ? 'Active' : 'No rules') +
+        (s.nat ? 'Ativo' : 'Sem regras') +
       '</span>' +
     '</div>' +
     '<div class="space-y-1">' +
@@ -96,14 +137,34 @@ function updateStatusGrid(s) {
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">WG Daemon</p>' +
       '<span class="text-sm font-medium ' + (s.daemons && s.daemons.wireguard ? 'text-green-400' : 'text-gray-500') + '">' +
-        (s.daemons && s.daemons.wireguard ? 'Loaded' : 'Not loaded') +
+        (s.daemons && s.daemons.wireguard ? 'Carregado' : 'Parado') +
       '</span>' +
     '</div>' +
     '<div class="space-y-1">' +
       '<p class="text-xs text-gray-500 uppercase tracking-wider">DuckDNS</p>' +
       '<span class="text-sm font-medium ' + (s.daemons && s.daemons.duckdns ? 'text-green-400' : 'text-gray-500') + '">' +
-        (s.daemons && s.daemons.duckdns ? 'Loaded' : 'Not loaded') +
+        (s.daemons && s.daemons.duckdns ? 'Carregado' : 'Parado') +
       '</span>' +
+    '</div>' +
+    '<div class="space-y-1">' +
+      '<p class="text-xs text-gray-500 uppercase tracking-wider">Health Check</p>' +
+      '<div class="flex items-center gap-2">' +
+        '<span class="w-2 h-2 rounded-full ' + (s.healthCheck && s.healthCheck.active ? 'bg-vpn-400 pulse-dot' : 'bg-gray-600') + '"></span>' +
+        '<span class="text-sm font-medium ' + (s.healthCheck && s.healthCheck.active ? 'text-vpn-400' : 'text-gray-500') + '">' +
+          (s.healthCheck && s.healthCheck.active ? 'Monitorando' : 'Inativo') +
+        '</span>' +
+      '</div>' +
+      (s.healthCheck && s.healthCheck.lastFix
+        ? '<p class="text-xs text-yellow-400/80" title="' + esc(s.healthCheck.lastFix.message) + '">Ultima correcao: ' + esc(s.healthCheck.lastFix.timestamp) + '</p>'
+        : (s.healthCheck && s.healthCheck.active ? '<p class="text-xs text-gray-600">Sem correcoes necessarias</p>' : '')) +
+    '</div>' +
+    '<div class="space-y-1">' +
+      '<p class="text-xs text-gray-500 uppercase tracking-wider">Interface</p>' +
+      '<span class="text-sm font-mono text-gray-300">' + esc(ifaceName || '-') + '</span>' +
+    '</div>' +
+    '<div class="space-y-1">' +
+      '<p class="text-xs text-gray-500 uppercase tracking-wider">Port</p>' +
+      '<span class="text-sm font-mono text-gray-300">' + esc(s.tunnel && s.tunnel.listenPort ? s.tunnel.listenPort : '-') + '</span>' +
     '</div>';
 }
 
@@ -171,6 +232,7 @@ function updateClientsTable(clients) {
       '<td class="py-3 text-right space-x-3">' +
         '<button onclick="renameClientPrompt(\'' + esc(c.name) + '\')" class="text-xs text-yellow-400 hover:text-yellow-300 transition-colors">Rename</button>' +
         '<button onclick="showQR(\'' + esc(c.name) + '\')" class="text-xs text-vpn-400 hover:text-vpn-300 transition-colors">QR Code</button>' +
+        '<button onclick="downloadConfig(\'' + esc(c.name) + '\')" class="text-xs text-blue-400 hover:text-blue-300 transition-colors">Download</button>' +
         '<button onclick="removeClient(\'' + esc(c.name) + '\')" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>' +
       '</td></tr>';
   }).join('');
@@ -220,12 +282,17 @@ function showQR(name) {
     if (data && data.error) { showToast(data.error, 'error'); return; }
     document.getElementById('qr-modal-title').textContent = name;
     document.getElementById('qr-modal-img').src = data.qrDataUrl;
+    document.getElementById('qr-modal-download-btn').setAttribute('onclick', "downloadConfig('" + esc(name) + "')");
     document.getElementById('qr-modal').classList.remove('hidden');
   }).catch(function() { showToast('Failed to load QR code', 'error'); });
 }
 
 function closeQRModal() {
   document.getElementById('qr-modal').classList.add('hidden');
+}
+
+function downloadConfig(name) {
+  window.location.href = '/api/clients/' + encodeURIComponent(name) + '/config';
 }
 
 // --- Add Client Modal ---
@@ -267,6 +334,7 @@ function addClient(e) {
     document.getElementById('result-message').textContent = 'Client "' + data.name + '" created!';
     document.getElementById('result-details').textContent = 'IP: ' + data.ip + ' | Endpoint: ' + data.endpoint;
     document.getElementById('result-qr').src = data.qrDataUrl;
+    document.getElementById('result-download-btn').setAttribute('onclick', "downloadConfig('" + esc(data.name) + "')");
     document.getElementById('add-client-result').classList.remove('hidden');
 
     showToast('Client "' + data.name + '" created successfully', 'success');

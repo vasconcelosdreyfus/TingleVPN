@@ -9,6 +9,8 @@ function rateLimitLogin(req, res, next) {
   const ip = req.ip;
   const now = Date.now();
   const record = loginAttempts.get(ip);
+  const wantsJson = req.path.startsWith('/api/') || req.originalUrl?.startsWith('/api/') ||
+    req.headers.accept?.includes('application/json');
 
   if (record) {
     // Clean old entries
@@ -16,9 +18,11 @@ function rateLimitLogin(req, res, next) {
       loginAttempts.delete(ip);
     } else if (record.count >= MAX_ATTEMPTS) {
       const retryAfter = Math.ceil((record.firstAttempt + WINDOW_MS - now) / 1000);
-      return res.status(429).render('login', {
-        error: `Too many attempts. Try again in ${Math.ceil(retryAfter / 60)} minutes.`
-      });
+      const message = `Too many attempts. Try again in ${Math.ceil(retryAfter / 60)} minutes.`;
+      if (wantsJson) {
+        return res.status(429).json({ error: message, retryAfter });
+      }
+      return res.status(429).render('login', { error: message });
     }
   }
 
@@ -42,6 +46,11 @@ function clearLoginAttempts(ip) {
 function requireAuth(req, res, next) {
   if (req.session && req.session.authenticated) {
     return next();
+  }
+  const wantsJson = req.path.startsWith('/api/') || req.originalUrl.startsWith('/api/') ||
+    req.headers.accept?.includes('application/json');
+  if (wantsJson) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
   res.redirect('/login');
 }

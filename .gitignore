@@ -16,3 +16,7 @@ restart-dashboard.sh
 
 # macOS
 .DS_Store
+
+# Native macOS app (SwiftPM)
+native-macos/TingleVPNTray/.build/
+native-macos/TingleVPNTray/.swiftpm/

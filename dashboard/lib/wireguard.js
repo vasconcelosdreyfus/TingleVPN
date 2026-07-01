@@ -6,6 +6,7 @@ const WG_CONF = '/usr/local/etc/wireguard/wg0.conf';
 
 // Full paths for commands - LaunchDaemons have minimal PATH
 const WG = '/opt/homebrew/bin/wg';
+const WG_QUICK = '/opt/homebrew/bin/wg-quick';
 const PFCTL = '/sbin/pfctl';
 const SYSCTL = '/usr/sbin/sysctl';
 const CURL = '/usr/bin/curl';
@@ -154,9 +155,69 @@ async function disconnectPeer(publicKey) {
   await exec(WG, ['set', iface, 'peer', publicKey, 'remove']);
 }
 
+/**
+ * Clean up stale WireGuard runtime files that prevent restart
+ */
+function cleanStaleFiles() {
+  const runDir = '/var/run/wireguard';
+  try {
+    const nameFile = path.join(runDir, 'wg0.name');
+    const sockFile = path.join(runDir, 'wg0.sock');
+    const iface = fs.readFileSync(nameFile, 'utf8').trim();
+
+    // Check if the interface actually exists by trying to read its flags
+    try {
+      require('child_process').execFileSync('/sbin/ifconfig', [iface], { timeout: 3000 });
+      // Interface exists, don't clean
+    } catch {
+      // Interface doesn't exist - stale files
+      try { fs.unlinkSync(nameFile); } catch {}
+      try { fs.unlinkSync(sockFile); } catch {}
+    }
+  } catch {
+    // No stale files to clean
+  }
+}
+
+/**
+ * Restart the WireGuard tunnel (down + clean stale + up)
+ * Returns { success, message }
+ */
+async function restartTunnel() {
+  // Try graceful down first
+  try {
+    await exec(WG_QUICK, ['down', 'wg0'], { timeout: 15000 });
+  } catch {
+    // May fail if tunnel wasn't running - that's OK
+  }
+
+  // Clean stale runtime files
+  cleanStaleFiles();
+
+  // Small delay to let the system release resources
+  await new Promise(r => setTimeout(r, 1000));
+
+  // Bring tunnel up
+  try {
+    await exec(WG_QUICK, ['up', 'wg0'], { timeout: 15000 });
+    return { success: true, message: 'Tunnel restarted successfully' };
+  } catch (err) {
+    // Retry once after more aggressive cleanup
+    cleanStaleFiles();
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      await exec(WG_QUICK, ['up', 'wg0'], { timeout: 15000 });
+      return { success: true, message: 'Tunnel restarted (2nd attempt)' };
+    } catch (err2) {
+      throw new Error(`Failed to restart tunnel: ${err2.message || err2.stderr || 'unknown error'}`);
+    }
+  }
+}
+
 module.exports = {
   WG_CONF,
   WG,
+  WG_QUICK,
   PFCTL,
   SYSCTL,
   CURL,
@@ -166,5 +227,6 @@ module.exports = {
   isWgUp,
   parseWgShow,
   readServerConfig,
-  disconnectPeer
+  disconnectPeer,
+  restartTunnel
 };

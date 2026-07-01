@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { requireAuth } = require('../lib/auth');
-const { listClients, generateClient, removeClient, renameClient, getClientQR } = require('../lib/clients');
+const { listClients, generateClient, removeClient, renameClient, getClientQR, getClientConfig } = require('../lib/clients');
 
 router.get('/clients', requireAuth, (req, res) => {
   try {
@@ -50,6 +50,23 @@ router.patch('/clients/:name', requireAuth, (req, res) => {
 
     const result = renameClient(name, newName);
     res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get('/clients/:name/config', requireAuth, (req, res) => {
+  try {
+    const { name } = req.params;
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return res.status(400).json({ error: 'Invalid client name' });
+    }
+
+    const config = getClientConfig(name);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}.conf"`);
+    res.send(config);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

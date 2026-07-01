@@ -351,11 +351,28 @@ function renameClient(oldName, newName) {
   return { oldName, newName };
 }
 
+/**
+ * Get raw config content for an existing client
+ */
+function getClientConfig(clientName) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(clientName)) {
+    throw new Error('Invalid client name');
+  }
+
+  const configPath = path.join(CONFIGS_DIR, `${clientName}.conf`);
+  if (!fs.existsSync(configPath)) {
+    throw new Error(`Config for '${clientName}' not found`);
+  }
+
+  return fs.readFileSync(configPath, 'utf8');
+}
+
 module.exports = {
   getClientMap,
   listClients,
   generateClient,
   removeClient,
   renameClient,
-  getClientQR
+  getClientQR,
+  getClientConfig
 };

@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { exec, isWgUp, getInterfaceName, WG, PFCTL, SYSCTL, CURL, LAUNCHCTL } = require('./wireguard');
 
 /**
@@ -56,15 +57,39 @@ async function getNatRules() {
 }
 
 /**
- * Get public IP via external service
+ * Get public IP via external service (with cache and fallback)
  */
+let cachedIp = null;
+let cachedAt = 0;
+const IP_CACHE_MS = 60 * 1000; // 1 minuto
+
+const IP_SERVICES = [
+  'https://api.ipify.org',
+  'https://ifconfig.me',
+  'https://icanhazip.com',
+];
+
 async function getPublicIp() {
-  try {
-    const out = await exec(CURL, ['-4', '-s', '--max-time', '5', 'ifconfig.me']);
-    return out.trim();
-  } catch {
-    return null;
+  const now = Date.now();
+  if (cachedIp && now - cachedAt < IP_CACHE_MS) {
+    return cachedIp;
   }
+
+  for (const service of IP_SERVICES) {
+    try {
+      const out = await exec(CURL, ['-4', '-s', '--max-time', '3', service]);
+      const ip = out.trim();
+      if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+        cachedIp = ip;
+        cachedAt = now;
+        return ip;
+      }
+    } catch {
+      // tenta o proximo
+    }
+  }
+
+  return cachedIp || null;
 }
 
 /**
@@ -80,16 +105,36 @@ async function getDaemonStatus(label) {
 }
 
 /**
+ * Get last health check correction from log
+ */
+function getLastHealthFix() {
+  const logPath = '/var/log/tinglevpn-health.log';
+  try {
+    const content = fs.readFileSync(logPath, 'utf8');
+    const lines = content.trim().split('\n').filter(l => l.includes('CORRIGIDO:'));
+    if (lines.length === 0) return null;
+    const last = lines[lines.length - 1];
+    // Format: "2026-02-21 18:06:40 [HEALTH] CORRIGIDO: ..."
+    const match = last.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[HEALTH\] CORRIGIDO: (.+)$/);
+    if (!match) return null;
+    return { timestamp: match[1], message: match[2] };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get full system status object
  */
 async function getSystemStatus() {
-  const [tunnel, ipForwarding, nat, publicIp, wgDaemon, duckDaemon] = await Promise.all([
+  const [tunnel, ipForwarding, nat, publicIp, wgDaemon, duckDaemon, healthDaemon] = await Promise.all([
     getTunnelStatus(),
     getIpForwarding(),
     getNatRules(),
     getPublicIp(),
     getDaemonStatus('com.tinglevpn.wg'),
-    getDaemonStatus('com.tinglevpn.duckdns')
+    getDaemonStatus('com.tinglevpn.duckdns'),
+    getDaemonStatus('com.tinglevpn.health')
   ]);
 
   return {
@@ -99,7 +144,12 @@ async function getSystemStatus() {
     publicIp,
     daemons: {
       wireguard: wgDaemon,
-      duckdns: duckDaemon
+      duckdns: duckDaemon,
+      health: healthDaemon
+    },
+    healthCheck: {
+      active: healthDaemon,
+      lastFix: getLastHealthFix()
     }
   };
 }

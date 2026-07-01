@@ -40,6 +40,10 @@
                   class="text-xs text-vpn-400 hover:text-vpn-300 transition-colors">
                   QR Code
                 </button>
+                <button onclick="downloadConfig('<%= client.name %>')"
+                  class="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                  Download
+                </button>
                 <button onclick="removeClient('<%= client.name %>')"
                   class="text-xs text-red-400 hover:text-red-300 transition-colors">
                   Remove

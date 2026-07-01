@@ -7,19 +7,16 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>-c</string>
-        <string>export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH; wg-quick up wg0</string>
+        <string>/usr/local/etc/wireguard/wg-daemon.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
-    <key>KeepAlive</key>
-    <dict>
-        <key>NetworkState</key>
-        <dict>
-            <key>en0</key>
-            <true/>
-        </dict>
-    </dict>
+    <!-- CRITICO: sem esta chave o launchd mata o wireguard-go que o wg-quick
+         lanca em background (daemonizado), ~70ms apos subir. Era a causa raiz
+         do crash-loop. Com ela, o wireguard-go sobrevive como processo
+         abandonado, igual a subir "wg-quick up wg0" no terminal. -->
+    <key>AbandonProcessGroup</key>
+    <true/>
     <key>StandardOutPath</key>
     <string>/var/log/tinglevpn-wg.log</string>
     <key>StandardErrorPath</key>

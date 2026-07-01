@@ -84,10 +84,12 @@ fi
 
 # --- Copia scripts de NAT ---
 
-info "Instalando scripts de NAT..."
+info "Instalando scripts de NAT, supervisor e health check..."
 cp "$SCRIPT_DIR/scripts/postup.sh" "$WG_DIR/postup.sh"
 cp "$SCRIPT_DIR/scripts/postdown.sh" "$WG_DIR/postdown.sh"
-chmod 755 "$WG_DIR/postup.sh" "$WG_DIR/postdown.sh"
+cp "$SCRIPT_DIR/scripts/healthcheck.sh" "$WG_DIR/healthcheck.sh"
+cp "$SCRIPT_DIR/scripts/wg-daemon.sh" "$WG_DIR/wg-daemon.sh"
+chmod 755 "$WG_DIR/postup.sh" "$WG_DIR/postdown.sh" "$WG_DIR/healthcheck.sh" "$WG_DIR/wg-daemon.sh"
 
 # --- Copia script DuckDNS ---
 
@@ -123,6 +125,11 @@ chmod 644 "$PLIST_DIR/com.tinglevpn.wg.plist"
 cp "$TEMPLATES_DIR/com.tinglevpn.duckdns.plist" "$PLIST_DIR/"
 chown root:wheel "$PLIST_DIR/com.tinglevpn.duckdns.plist"
 chmod 644 "$PLIST_DIR/com.tinglevpn.duckdns.plist"
+
+# Health check (auto-correcao de NAT/forwarding)
+cp "$TEMPLATES_DIR/com.tinglevpn.health.plist" "$PLIST_DIR/"
+chown root:wheel "$PLIST_DIR/com.tinglevpn.health.plist"
+chmod 644 "$PLIST_DIR/com.tinglevpn.health.plist"
 
 info "LaunchDaemons instalados (nao ativados ainda)"
 

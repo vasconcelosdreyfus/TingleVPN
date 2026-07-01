@@ -43,6 +43,7 @@ Comandos:
   ip          Mostra o IP publico atual
   duckdns     Forca atualizacao do DuckDNS agora
   dashboard   Inicia/para/reinicia o dashboard web (start|stop|restart|status)
+  health      Mostra logs do health check
 EOF
     exit 1
 }
@@ -53,29 +54,42 @@ cmd_start() {
     check_root
     info "Iniciando WireGuard..."
 
-    if wg show wg0 &>/dev/null; then
-        info "WireGuard ja esta rodando"
-    else
-        wg-quick up wg0
-        info "WireGuard iniciado"
-    fi
-
-    # Ativa LaunchDaemons
+    # O tunel e gerenciado pelo LaunchDaemon com.tinglevpn.wg (RunAtLoad +
+    # AbandonProcessGroup), que sobe o wg0 ao ser carregado via wg-daemon.sh.
+    # Carregar o daemon e a forma canonica de iniciar; o health check cuida de
+    # reergue-lo caso caia.
     if [[ -f /Library/LaunchDaemons/com.tinglevpn.wg.plist ]]; then
         launchctl load -w /Library/LaunchDaemons/com.tinglevpn.wg.plist 2>/dev/null || true
+        info "WireGuard iniciado (via daemon supervisor)"
+    elif wg show wg0 &>/dev/null; then
+        info "WireGuard ja esta rodando"
+    else
+        # Fallback: sem daemon instalado, sobe direto
+        wg-quick up wg0
+        info "WireGuard iniciado"
     fi
     if [[ -f /Library/LaunchDaemons/com.tinglevpn.duckdns.plist ]]; then
         launchctl load -w /Library/LaunchDaemons/com.tinglevpn.duckdns.plist 2>/dev/null || true
     fi
+    if [[ -f /Library/LaunchDaemons/com.tinglevpn.health.plist ]]; then
+        launchctl load -w /Library/LaunchDaemons/com.tinglevpn.health.plist 2>/dev/null || true
+    fi
 
-    info "LaunchDaemons ativados"
+    # Ativa Dashboard
+    cmd_dashboard start
+
+    info "LaunchDaemons ativados (incluindo Dashboard)"
 }
 
 cmd_stop() {
     check_root
     info "Parando WireGuard..."
 
+    # Desativa Dashboard
+    cmd_dashboard stop
+
     # Desativa LaunchDaemons
+    launchctl unload -w /Library/LaunchDaemons/com.tinglevpn.health.plist 2>/dev/null || true
     launchctl unload -w /Library/LaunchDaemons/com.tinglevpn.wg.plist 2>/dev/null || true
     launchctl unload -w /Library/LaunchDaemons/com.tinglevpn.duckdns.plist 2>/dev/null || true
 
@@ -91,22 +105,43 @@ cmd_restart() {
     check_root
     info "Reiniciando WireGuard..."
 
-    if wg show wg0 &>/dev/null; then
-        wg-quick down wg0
+    # Se o daemon esta carregado, deixa ele reiniciar o tunel via kickstart --
+    # o wireguard-go sobe protegido pelo AbandonProcessGroup e persiste.
+    if launchctl list com.tinglevpn.wg &>/dev/null; then
+        launchctl kickstart -k system/com.tinglevpn.wg
+        info "WireGuard reiniciado (via daemon supervisor)"
+    else
+        if wg show wg0 &>/dev/null; then
+            wg-quick down wg0
+        fi
+        wg-quick up wg0
+        info "WireGuard reiniciado"
     fi
-    wg-quick up wg0
-
-    info "WireGuard reiniciado"
 }
 
 cmd_status() {
     echo "=== Status do WireGuard ==="
     echo ""
 
-    if wg show wg0 &>/dev/null; then
-        echo "Tunel: ATIVO"
+    # Check tunnel via interface existence (works without root)
+    local wg_iface=""
+    if [[ -f /var/run/wireguard/wg0.name ]]; then
+        wg_iface=$(cat /var/run/wireguard/wg0.name)
+    else
+        # Fallback: check utun interfaces with WireGuard IP
+        wg_iface=$(ifconfig -l | tr ' ' '\n' | while read -r iface; do
+            ifconfig "$iface" 2>/dev/null | grep -q "inet 10.10.10.1 " && echo "$iface" && break
+        done)
+    fi
+
+    if [[ -n "$wg_iface" ]]; then
+        echo "Tunel: ATIVO ($wg_iface)"
         echo ""
-        wg show wg0
+        if wg show wg0 2>/dev/null; then
+            :
+        else
+            echo "(Execute com sudo para ver detalhes dos peers)"
+        fi
     else
         echo "Tunel: INATIVO"
     fi
@@ -117,7 +152,15 @@ cmd_status() {
 
     echo ""
     echo "=== NAT (pfctl anchor) ==="
-    pfctl -a com.apple/wireguard -s nat 2>/dev/null || echo "Sem regras NAT ativas"
+    local nat_output
+    nat_output=$(pfctl -a com.apple/wireguard -s nat 2>&1)
+    if echo "$nat_output" | grep -q "Permission denied"; then
+        echo "(Execute com sudo para ver regras NAT)"
+    elif [[ -z "$nat_output" ]]; then
+        echo "Sem regras NAT ativas"
+    else
+        echo "$nat_output"
+    fi
 
     echo ""
     echo "=== LaunchDaemons ==="
@@ -135,6 +178,11 @@ cmd_status() {
         echo "Dashboard daemon: carregado"
     else
         echo "Dashboard daemon: nao carregado"
+    fi
+    if launchctl list com.tinglevpn.health &>/dev/null; then
+        echo "Health check daemon: carregado"
+    else
+        echo "Health check daemon: nao carregado"
     fi
 }
 
@@ -241,6 +289,14 @@ cmd_logs() {
     else
         echo "Nenhum log encontrado"
     fi
+
+    echo ""
+    echo "=== Logs do Health Check ==="
+    if [[ -f /var/log/tinglevpn-health.log ]]; then
+        tail -20 /var/log/tinglevpn-health.log
+    else
+        echo "Nenhum log encontrado"
+    fi
 }
 
 cmd_ip() {
@@ -252,6 +308,15 @@ cmd_ip() {
 cmd_duckdns() {
     info "Forcando atualizacao do DuckDNS..."
     "$WG_DIR/duckdns-update.sh"
+}
+
+cmd_health() {
+    echo "=== Logs do Health Check ==="
+    if [[ -f /var/log/tinglevpn-health.log ]]; then
+        tail -30 /var/log/tinglevpn-health.log
+    else
+        echo "Nenhum log encontrado"
+    fi
 }
 
 cmd_dashboard() {
@@ -309,5 +374,6 @@ case "$COMMAND" in
     ip)      cmd_ip ;;
     duckdns)    cmd_duckdns ;;
     dashboard)  cmd_dashboard "$@" ;;
+    health)     cmd_health ;;
     *)          usage ;;
 esac
